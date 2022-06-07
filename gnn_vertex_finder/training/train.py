@@ -22,7 +22,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks import StochasticWeightAveraging
 
 from lightning import VertexFinder
-from data.dataset import TrackDataset
+from data.datamodule import TrackDataModule
 
 
 def parse_args():
@@ -40,39 +40,30 @@ def train(args):
     Fit the model.
     """
 
-    dataset = TrackDataset(root="/Users/jburzyns/Documents/work/LLP/HDMI/GNN/gnn_vertex_finder/training/data/")
-
-    # shuffle dataset and get train/validation/test splits
-    dataset = dataset.shuffle()
-
-    num_samples = len(dataset)
-    batch_size = 32
-
-    num_val = num_samples // 10
-
-    val_dataset = dataset[:num_val]
-    test_dataset = dataset[num_val:2 * num_val]
-    train_dataset = dataset[2 * num_val:]
-
-    train_loader = DataLoader(train_dataset, batch_size=batch_size)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size)
-
-
     # create a new model
     model = VertexFinder()
 
-    num_epochs = 2500
-    val_check_interval = len(train_loader)
+    # create the datamodule
+    dm = TrackDataModule()
+
+    num_epochs = 10 
 
     # create the lightning trainer
     print('Creating trainer...')
-    trainer = pl.Trainer(max_epochs = num_epochs, \
-            val_check_interval=val_check_interval)
+    trainer = pl.Trainer(
+        max_epochs=num_epochs, 
+        #strategy=DDPPlugin(find_unused_parameters=False), 
+        #accelerator=config['accelerator'],
+        #devices=config['num_gpus'],
+        logger=None, 
+        #log_every_n_steps=20,
+        #fast_dev_run=args.test_run,
+        #callbacks=callbacks,
+    )
 
     # fit model 
     print('Fitting model...')
-    trainer.fit(model, train_loader, val_loader)
+    trainer.fit(model, datamodule=dm)
 
     return model, trainer
 

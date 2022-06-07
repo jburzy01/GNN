@@ -16,7 +16,8 @@ class TrackDataset(Dataset):
 
     @property
     def processed_file_names(self):
-        return 'not_implemented.pt' 
+        return 'null.pt'
+        #return [ 'data_{}.pt'.format(i) for i in range(100) ]
 
     def download(self):
         pass
@@ -76,6 +77,11 @@ class TrackDataset(Dataset):
 
                 node_features = torch.tensor(tracks[:,:-1], dtype = torch.float)
 
+                labels = tracks[:,-1]
+                labels = np.array([0 if x == 0 or x == -1 else 1 for x in labels])
+
+                node_labels   = torch.tensor(labels, dtype = torch.float)
+
                 adjacency_matrix = np.zeros( (len(tracks), len(tracks)) )
 
                 for i in range(len(tracks)):
@@ -96,7 +102,8 @@ class TrackDataset(Dataset):
                 adjacency_info = torch.tensor(coo, dtype=torch.long)
 
                 data = Data(x=node_features,
-                            edge_index=adjacency_info)
+                            edge_index=adjacency_info,
+                            y=node_labels)
 
                 torch.save(data,os.path.join(self.processed_dir, f'data_{evt}.pt'))
 

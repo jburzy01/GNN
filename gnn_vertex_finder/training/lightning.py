@@ -3,7 +3,6 @@
 """
 
 import torch
-from torch.utils.data import Dataset, DataLoader
 import torch.nn.functional as F
 
 from pytorch_lightning.loggers import CometLogger
@@ -21,21 +20,36 @@ class VertexFinder(pl.LightningModule):
         self.config = config
 
         # create the network
-        self.model = GNNVertexFinder(input_size = 516, output_size = 1, hidden_layers = 2)
+        self.model = GNNVertexFinder(input_size = 20, output_size = 1)
 
         self.lr = self.learning_rate = 0.001
 
 
 
-    def forward(self, g):
+    def forward(self, data):
 
         # compute the model output given an input graph
-        return self.model(g)
+        x_out = self.model(data)
+        return x_out
+
 	
     def training_step(self, batch, batch_idx):
 
-        x, y = batch
-        y_hat = self(x) 
+        data = batch
+
+        x_out = self.forward(data)
+
+        loss = F.binary_cross_entropy(x_out, data.y.unsqueeze(1))
+
+        # metrics here
+        pred = x_out.argmax(-1)
+        label = data.y
+        accuracy = (pred == label).sum() / pred.shape[0]
+
+        self.log("loss/train", loss)
+        self.log("accuracy/train", accuracy)
+
+        return loss
 
     def configure_optimizers(self):
         """
